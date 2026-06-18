@@ -81,11 +81,6 @@
 
             @endforeach
         </div>
-
-        <div class="mt-10">
-            {{ $berita->links() }}
-        </div>
-
     </div>
 </div>
 @endsection

@@ -209,189 +209,86 @@ class SurveyController extends Controller
      * DATA HASIL SURVEY
      * =========================================================
      */
-
-    /**
-     * LIST HASIL SURVEY
-     */
     public function hasil(Request $request)
     {
         $bulan = $request->bulan ?? date('n');
-
         $tahun = $request->tahun ?? date('Y');
 
-        /**
-         * FILTER SURVEY
-         */
-        $surveyQuery = JawabanSurvey::with([
-                'periodeSurvey'
-            ])
-            ->whereMonth(
-                'tanggal_survey',
-                $bulan
-            )
-            ->whereYear(
-                'tanggal_survey',
-                $tahun
-            );
-
-        $surveys = $surveyQuery
+        $surveys = JawabanSurvey::with(['periodeSurvey'])
+            ->whereMonth('tanggal_survey', $bulan)
+            ->whereYear('tanggal_survey', $tahun)
             ->latest('tanggal_survey')
             ->get();
 
-        /**
-         * TOTAL RESPONDEN
-         */
-        $totalResponden =
-            $surveys->count();
+        $totalResponden = $surveys->count();
 
-        /**
-         * DATA GENDER
-         */
         $countGender = [
-
-            'laki_laki' =>
-                $surveys
-                    ->where(
-                        'jenis_kelamin_responden',
-                        'Laki-laki'
-                    )
-                    ->count(),
-
-            'perempuan' =>
-                $surveys
-                    ->where(
-                        'jenis_kelamin_responden',
-                        'Perempuan'
-                    )
-                    ->count(),
+            'laki_laki' => $surveys->where('jenis_kelamin_responden', 'Laki-laki')->count(),
+            'perempuan' => $surveys->where('jenis_kelamin_responden', 'Perempuan')->count(),
         ];
 
-        /**
-         * DATA PENDIDIKAN
-         */
         $countPendidikan = [
             'tidak_sekolah' => JawabanSurvey::where('pendidikan_responden', 'Tidak Sekolah')->count(),
-
             'tidak_tamat_sd' => JawabanSurvey::where('pendidikan_responden', 'Tidak Tamat SD/Sederajat')->count(),
-
             'tamat_sd' => JawabanSurvey::where('pendidikan_responden', 'Tamat SD/Sederajat')->count(),
-
             'tidak_tamat_smp' => JawabanSurvey::where('pendidikan_responden', 'Tidak Tamat SMP/Sederajat')->count(),
-
             'tamat_smp' => JawabanSurvey::where('pendidikan_responden', 'Tamat SMP/Sederajat')->count(),
-
             'tidak_tamat_sma' => JawabanSurvey::where('pendidikan_responden', 'Tidak Tamat SMA/Sederajat')->count(),
-
             'tamat_sma' => JawabanSurvey::where('pendidikan_responden', 'Tamat SMA/Sederajat')->count(),
-
             'diploma' => JawabanSurvey::where('pendidikan_responden', 'Tamat D1/D2/D3')->count(),
-
             'sarjana' => JawabanSurvey::where('pendidikan_responden', 'Tamat S1/S2/S3')->count(),
         ];
 
-        /**
-         * HITUNG IKM
-         */
-        $jumlahUnsur =
-            PertanyaanSurvey::count();
-
+        $jumlahUnsur = PertanyaanSurvey::count();
         $nilaiIkm = 0;
-
         $mutu = '-';
-
         $kinerja = '-';
-
         $hasilUnsur = [];
 
         if ($jumlahUnsur > 0) {
-
-            $bobotUnsur =
-                1 / $jumlahUnsur;
-
-            $pertanyaan =
-                PertanyaanSurvey::with([
-                    'detailJawaban.opsiJawaban'
-                ])->get();
-
+            $bobotUnsur = 1 / $jumlahUnsur;
+            $pertanyaan = PertanyaanSurvey::with(['detailJawaban.opsiJawaban'])->get();
             $totalNilai = 0;
 
             foreach ($pertanyaan as $item) {
+                $detailJawaban = $item->detailJawaban;
+                $jumlahRespondenUnsur = $detailJawaban->count();
 
-                $detailJawaban =
-                    $item->detailJawaban;
+                $totalPersepsi = $detailJawaban->sum(function ($detail) {
+                    return $detail->opsiJawaban->nilai_jawaban ?? 0;
+                });
 
-                $jumlahRespondenUnsur =
-                    $detailJawaban->count();
-
-                $totalPersepsi =
-                    $detailJawaban->sum(function ($detail) {
-
-                        return $detail
-                            ->opsiJawaban
-                            ->nilai_jawaban ?? 0;
-                    });
-
-                $rataRata =
-                    $jumlahRespondenUnsur > 0
-                        ? $totalPersepsi / $jumlahRespondenUnsur
-                        : 0;
-
-                $nilaiTertimbang =
-                    $rataRata * $bobotUnsur;
-
-                $totalNilai +=
-                    $nilaiTertimbang;
+                $rataRata = $jumlahRespondenUnsur > 0 ? $totalPersepsi / $jumlahRespondenUnsur : 0;
+                $nilaiTertimbang = $rataRata * $bobotUnsur;
+                $totalNilai += $nilaiTertimbang;
 
                 $hasilUnsur[] = [
-
-                    'pertanyaan' =>
-                        $item->pertanyaan_survey,
-
-                    'rata_rata' =>
-                        round($rataRata, 2),
+                    'pertanyaan' => $item->pertanyaan_survey,
+                    'rata_rata'  => round($rataRata, 2),
                 ];
             }
 
-            $nilaiIkm =
-                round($totalNilai * 25, 2);
+            $nilaiIkm = round($totalNilai * 25, 2);
 
             if ($nilaiIkm >= 88.31) {
-
                 $mutu = 'A';
                 $kinerja = 'Sangat Baik';
-
             } elseif ($nilaiIkm >= 76.61) {
-
                 $mutu = 'B';
                 $kinerja = 'Baik';
-
             } elseif ($nilaiIkm >= 65.00) {
-
                 $mutu = 'C';
                 $kinerja = 'Kurang Baik';
-
             } else {
-
                 $mutu = 'D';
                 $kinerja = 'Tidak Baik';
             }
         }
 
-        return view(
-            'admin.survey.hasil.index',
-            compact(
-                'surveys',
-                'nilaiIkm',
-                'mutu',
-                'kinerja',
-                'hasilUnsur',
-                'countGender',
-                'countPendidikan',
-                'totalResponden',
-                'bulan',
-                'tahun'
-            )
-        );
+        return view('admin.survey.hasil.index', compact(
+            'surveys', 'nilaiIkm', 'mutu', 'kinerja', 'hasilUnsur',
+            'countGender', 'countPendidikan', 'totalResponden', 'bulan', 'tahun'
+        ));
     }
 
     /**

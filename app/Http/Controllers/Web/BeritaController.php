@@ -22,9 +22,7 @@ class BeritaController extends Controller
         ->where('status_berita', 'Published');
 
         if ($request->search) {
-
             $query->where(function ($q) use ($request) {
-
                 $q->where('judul_berita', 'like', '%' . $request->search . '%')
                 ->orWhere('isi_berita', 'like', '%' . $request->search . '%');
             });
@@ -32,7 +30,8 @@ class BeritaController extends Controller
 
         $berita = $query
             ->latest('tanggal_berita')
-            ->paginate(10);
+            ->take(5)
+            ->get();
 
         return view('public.berita.index', compact('berita'));
     }

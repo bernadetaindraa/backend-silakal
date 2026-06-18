@@ -27,7 +27,6 @@ class LayananController extends Controller
             'selesai'
         ]);
 
-        // Search
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
@@ -39,7 +38,6 @@ class LayananController extends Controller
         });
         }
 
-        // Filter Status
         if ($request->filled('status')) {
             $query->where('status_layanan', $request->status);
         }
@@ -144,10 +142,8 @@ class LayananController extends Controller
 
         $layanan->update($dataUpdate);
 
-        // refresh data terbaru dari database
         $layanan->refresh();
 
-        // kirim email jika metode pengiriman email
         if (
             $layanan->pengiriman_layanan === 'email' &&
             $layanan->user &&
@@ -218,7 +214,6 @@ class LayananController extends Controller
      */
     public function update(Request $request, $id)
     {
-        // 1. Validasi
         $request->validate([
             'jenis_layanan'         => 'nullable|string|max:255',
             'status_layanan'        => 'nullable',

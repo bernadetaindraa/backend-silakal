@@ -73,7 +73,6 @@ class LayananController extends Controller
             'catatan_penolakan' => $request->catatan_penolakan
         ]);
 
-        // notif beda isi
         if ($request->status_layanan === 'diverifikasi') {
             $judul = 'Permohonan Diverifikasi Dukuh';
             $pesan = "Permohonan {$layanan->nomor_layanan} telah diverifikasi.";

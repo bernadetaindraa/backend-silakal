@@ -98,11 +98,6 @@ class LayananController extends Controller
      */
     public function store(Request $request)
     {
-        /*
-        |--------------------------------------------------------------------------
-        | VALIDASI DASAR
-        |--------------------------------------------------------------------------
-        */
         $rules = [
             'jenis_layanan'      => 'required|string',
             'keperluan_layanan'  => 'required|string|max:500',
@@ -127,11 +122,6 @@ class LayananController extends Controller
             'file_pendukung'     => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
         ];
 
-        /*
-        |--------------------------------------------------------------------------
-        | VALIDASI DINAMIS BERDASARKAN JENIS LAYANAN
-        |--------------------------------------------------------------------------
-        */
         switch ($request->jenis_layanan) {
             case 'sku':
                 $rules['nama_usaha']   = 'required|string|max:255';
@@ -172,19 +162,11 @@ class LayananController extends Controller
         DB::beginTransaction();
 
         try {
-            /*
-            |--------------------------------------------------------------------------
-            | GENERATE NOMOR LAYANAN
-            |--------------------------------------------------------------------------
-            */
+
             $lastId = (Layanan::max('layanan_id') ?? 0) + 1;
             $nomor  = 'LY-' . date('Y') . '-' . str_pad($lastId, 4, '0', STR_PAD_LEFT);
 
-            /*
-            |--------------------------------------------------------------------------
-            | UPLOAD FILE
-            |--------------------------------------------------------------------------
-            */
+    
             $fileKtp = $request->file('file_ktp')->store('layanan/ktp', 'public');
             $fileKk  = $request->file('file_kk')->store('layanan/kk', 'public');
 
@@ -193,11 +175,6 @@ class LayananController extends Controller
                 $filePendukung = $request->file('file_pendukung')->store('layanan/pendukung', 'public');
             }
 
-            /*
-            |--------------------------------------------------------------------------
-            | DATA TAMBAHAN (FIELD DINAMIS)
-            |--------------------------------------------------------------------------
-            */
             $exclude = [
                 '_token', 'jenis_layanan', 'keperluan_layanan', 'pengiriman_layanan',
                 'jenis_pengajuan', 'hubungan_pengaju', 'nik_pengajuan', 'nama_pengajuan',
@@ -207,11 +184,6 @@ class LayananController extends Controller
 
             $dataTambahan = $request->except($exclude);
 
-            /*
-            |--------------------------------------------------------------------------
-            | CREATE LAYANAN
-            |--------------------------------------------------------------------------
-            */
             $layanan = Layanan::create([
                 'user_id'                   => auth()->id(),
                 'kategori_layanan'          => $this->getKategoriLayanan($validated['jenis_layanan']),
@@ -235,11 +207,6 @@ class LayananController extends Controller
                 'tanggal_layanan'           => now()->toDateString(),
             ]);
 
-            /*
-            |--------------------------------------------------------------------------
-            | SIMPAN DOKUMEN
-            |--------------------------------------------------------------------------
-            */
             LayananDokumen::create([
                 'layanan_id'       => $layanan->layanan_id,
                 'jenis_dokumen'    => 'ktp',
@@ -260,11 +227,6 @@ class LayananController extends Controller
                 ]);
             }
 
-            /*
-            |--------------------------------------------------------------------------
-            | NOTIFIKASI
-            |--------------------------------------------------------------------------
-            */
             $this->notif(
                 $layanan->user_id, 
                 'Pengajuan Diterima', 
